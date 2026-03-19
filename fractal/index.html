@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fraktālis</title>
+  </head>
+  <body>
+    <h3 style="display: flex; justify-content: center; align-items: center">
+      1c. Istrādāt datorprogrammu, kas uzzīmē fraktāli, atklāti definējot tā
+      līdzību pašam ar sevi dažādos detalizācijas līmeņos (Mandelbrota kopa un
+      tamlīdzīgas neder).
+    </h3>
+    <div
+      class="canva-container"
+      style="display: flex; justify-content: center; align-items: center"
+    >
+      <canvas
+        id="canvas"
+        width="800"
+        height="600"
+        style="border: solid 2px black"
+      ></canvas>
+    </div>
+
+    <!-- <script type="module" src="fractal.ts"> -->
+    <script>
+      // Canvas iegūšana, lai uzsāktu zīmēšanu
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+
+      // Sākotnējie punkti (grādi uz riņķa līnijas)
+      const ANGLES = [0, 60, 120, 180, 240, 300];
+
+      /**
+       * Pārveido grādus radiānos, kas nepieciešams sin un cos vērtību iegūšanai
+       * @param degrees - grādi, kuri jāpārveido par radiāniem
+       */
+      function degreesToRadians(degrees) {
+        return degrees * (Math.PI / 180);
+      }
+
+      /**
+       * Zīmē rekursīvu riņķu fraktāli
+       * @param x - riņķa centra x koordināta
+       * @param y - riņķa centra y koordināta
+       * @param radius - riņķa rādiuss
+       * @param depth - rekursijas dziļums
+       */
+      function drawCircleFractal(
+        x,
+        y,
+        radius,
+        depth,
+      ) {
+        if (depth === 0) {
+          return;
+        }
+
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, 2 * Math.PI); // arc(x, y, rādiuss, sākuma leņķis, beigu leņķis)
+        ctx.lineWidth = depth * 0.5; // līnijas biezums ir atkarīgs no dziļuma
+        ctx.stroke();
+
+        const offset = radius * 0.7;
+        const nextRadius = radius / 2;    // katrs nākamais rādiuss tiek samazināts uz pusi
+        const rotation = depth * 0.4;     // katrā rekursijas līmenī tiek pievienots pagrieziens, kas nobīda riņķu izvietojumu pa vecāka riņķa līniju
+        for (const angle of ANGLES) {
+          const radians = degreesToRadians(angle) + rotation;
+
+          // Lai iegūtu x koordinātu tiek izmantota formula cos(a) = piekatete/hipotenūza,
+          // no kā iegūst piekatete = rādiuss * cos(a).
+          // Šī piekatete dod nobidi pa x asi no iepriekšējā riņķa centra.
+          // Līdzīgi tiek aprēķinātas y koordinātas ar sin, kur tiek iegūta pretkatete.
+          const newX = x + offset * Math.cos(radians);
+          const newY = y + offset * Math.sin(radians);
+
+          drawCircleFractal(newX, newY, nextRadius, depth - 1);
+        }
+      }
+
+      drawCircleFractal(400, 300, 150, 5);
+    </script>
+  </body>
+</html>
