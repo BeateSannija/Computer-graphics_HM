@@ -22,6 +22,21 @@
         style="border: solid 2px black"
       ></canvas>
     </div>
+    <p
+      style="
+        text-align: center;
+        max-width: 600px;
+        margin: auto;
+        margin-top: 10px;
+      "
+    >
+      Fraktālis tiek veidots, katram riņķim uzzīmējot vairākus mazākus riņķus ap
+      to noteiktos leņķos. Katra nākamā riņķa rādiuss
+      tiek samazināts uz pusi, un process atkārtojas līdz noteiktam dziļumam.
+      Papildus tiek pielietota nobīde un rotācija, kas maina riņķu izvietojumu.
+      Mainot rotācijas, nobīdes un rādiusa mēroga koeficientus, iespējams iegūt
+      dažādas fraktāļa variācijas.
+    </p>
 
     <!-- <script type="module" src="fractal.ts"> -->
     <script>
@@ -47,12 +62,7 @@
        * @param radius - riņķa rādiuss
        * @param depth - rekursijas dziļums
        */
-      function drawCircleFractal(
-        x,
-        y,
-        radius,
-        depth,
-      ) {
+      function drawCircleFractal(x, y, radius, depth) {
         if (depth === 0) {
           return;
         }
@@ -63,8 +73,8 @@
         ctx.stroke();
 
         const offset = radius * 0.7;
-        const nextRadius = radius / 2;    // katrs nākamais rādiuss tiek samazināts uz pusi
-        const rotation = depth * 0.4;     // katrā rekursijas līmenī tiek pievienots pagrieziens, kas nobīda riņķu izvietojumu pa vecāka riņķa līniju
+        const nextRadius = radius / 2; // katrs nākamais rādiuss tiek samazināts uz pusi
+        const rotation = depth * 0.4; // katrā rekursijas līmenī tiek pievienots pagrieziens, kas nobīda riņķu izvietojumu pa vecāka riņķa līniju
         for (const angle of ANGLES) {
           const radians = degreesToRadians(angle) + rotation;
 
