@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <h3 style="display: flex; justify-content: center; align-items: center">
+      3a. Izstrādāt datorprogrammu, kas realizē taisnes nogriežņa izrindošanu ar
+      robojumu novēršanu pie dažādām fona un nogriežņa krāsām. Demonstrēt
+      rezultātus pie dažādiem nogriežņa lenķiem.
+    </h3>
+    <div
+      class="canva-container"
+      style="
+        display: grid;
+        grid-template-columns: auto auto auto;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+      "
+    >
+      <canvas
+        id="canvas1"
+        width="400"
+        height="400"
+        style="border: solid 2px black; display: block; background: white"
+      ></canvas>
+      <canvas
+        id="canvas2"
+        width="400"
+        height="400"
+        style="border: solid 2px black; display: block; background: black"
+      ></canvas>
+      <canvas
+        id="canvas3"
+        width="400"
+        height="400"
+        style="
+          border: solid 2px black;
+          display: block;
+          background: rgb(11, 26, 43);
+        "
+      ></canvas>
+      <canvas
+        id="canvas4"
+        width="400"
+        height="400"
+        style="
+          border: solid 2px black;
+          display: block;
+          background: rgb(20, 20, 30);
+        "
+      ></canvas>
+      <canvas
+        id="canvas5"
+        width="400"
+        height="400"
+        style="
+          border: solid 2px black;
+          display: block;
+          background: rgb(245, 245, 220);
+        "
+      ></canvas>
+      <canvas
+        id="canvas6"
+        width="400"
+        height="400"
+        style="
+          border: solid 2px black;
+          display: block;
+          background: rgb(30, 30, 30);
+        "
+      ></canvas>
+      
+    </div>
+    <p style="text-align: center; margin-top: 10px; max-width: 800px; margin-left: auto; margin-right: auto;">
+        Izmantoju Bresenhama algoritmu, bet veicu pārveidojumus, lai tas darbotos dažādiem nogriežņiem.
+        Robojumu novēršanai zīmēju blakus pikseļus, kuru intensitāti
+        aprēķinu pēc attāluma līdz taisnei.
+      </p>
+
+    <script>
+      const PIXEL_SIZE = 4;
+
+      const GREEN = { r: 34, g: 139, b: 34 };
+      const WHITE = { r: 255, g: 255, b: 255 };
+      const LIGHT_BLUE = { r: 0, g: 255, b: 255 };
+      const PURPLE = { r: 255, g: 100, b: 255 };
+      const BLUE = { r: 0, g: 120, b: 255 };
+      const ORANGE = { r: 255, g: 165, b: 0 };
+
+      const canvas1 = document.getElementById("canvas1");
+      const canvas2 = document.getElementById("canvas2");
+      const canvas3 = document.getElementById("canvas3");
+      const canvas4 = document.getElementById("canvas4");
+      const canvas5 = document.getElementById("canvas5");
+      const canvas6 = document.getElementById("canvas6");
+      const ctx1 = canvas1.getContext("2d");
+      const ctx2 = canvas2.getContext("2d");
+      const ctx3 = canvas3.getContext("2d");
+      const ctx4 = canvas4.getContext("2d");
+      const ctx5 = canvas5.getContext("2d");
+      const ctx6 = canvas6.getContext("2d");
+
+      /**
+       * Uzzīmē pikseli ar noteiku krāsu un caurspīdīgumu
+       * @param ctx - canvas konteksts
+       * @param x - pikseļa x koordinātas canvā
+       * @param y - pikseļa y koordinātas canvā
+       * @param color - objekts ar RGB vērtībām
+       * @param alpha - pikseļa intensitāte
+       */
+      function setPixel(ctx, x, y, color, alpha = 1) {
+        // izmantojot rgba objektu varu izmantot šo funkciju, lai apvienotu gan galveno pikseļu,
+        // gan blakus pikseļu (ar mazāku intensitāti) iezīmēšanu; citādi bija problēmas ar intensitātes (alpha) pievienošanu
+        ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
+        ctx.fillRect(x * PIXEL_SIZE, y * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE); //fillRect(x, y, width, height)
+      }
+
+      /**
+       * Aprēķina attālumu no punkta līdz nogrieznim
+       * @param px - punkta x koordināta
+       * @param py - punkta y koordināta
+       * @param x0 - nogriežņa sākuma punkta x koordināta
+       * @param y0 - nogriežņa sākuma punkta y koordināta
+       * @param x1 - nogriežņa beigu punkta x koordināta
+       * @param y1 - nogriežņa beigu punkta y koordināta
+       * Atgriež punkta attālumu līdz nogrieznim
+       */
+      function distanceToLine(px, py, x0, y0, x1, y1) {
+        //no nogriežņa punktiem iegūstam taisnes vispārīgo vienādojumu
+        const A = y1 - y0;
+        const B = x0 - x1;
+        const C = x1 * y0 - x0 * y1;
+
+        // formula punkta attālumam līdz taisnei: d=|Ax0 + By0 + C| / sqrt(A^2 + B^2)
+        return Math.abs(A * px + B * py + C) / Math.sqrt(A * A + B * B);
+      }
+
+      /**
+       * Uzzīmē pikseli:
+       * apvieno distanceToLine un setPixel loģiku - veic setPixel izsaukšanu,
+       * balstoties uz iegūto attālumu līdz nogrieznim no distanceToLine
+       * @param ctx - canva
+       * @param x - pikseļa x koordinātas canvā
+       * @param y - pikseļa y koordinātas canvā
+       * @param x0 - nogriežņa sākuma punkta x koordināta
+       * @param y0 - nogriežņa sākuma punkta y koordināta
+       * @param x1 - nogriežņa beigu punkta x koordināta
+       * @param y1 - nogriežņa beigu punkta y koordināta
+       * @param color - objekts ar RGB vērtībām
+       */
+      function drawAAPixel(ctx, x, y, x0, y0, x1, y1, color) {
+        //0.5, jo attālums līdz nogrieznim tiek rēķināts no pikseļa centra
+        const distance = distanceToLine(
+          x + 0.5,
+          y + 0.5,
+          x0 + 0.5,
+          y0 + 0.5,
+          x1 + 0.5,
+          y1 + 0.5,
+        );
+
+        const intensity = 1 - distance; // jo mazāks attālums līdz nogrieznim, jo lielaka intensitāte
+
+        if (intensity > 0) {
+          setPixel(ctx, x, y, color, intensity);
+        }
+      }
+
+      /**
+       * Veic nogriežņa izrindošanu, izmantojot uzlabotu Bresenhama algoritmu ar robojumu novēršanu
+       * Darbojas ar visiem nogriežņa virzieniem un slīpumiem
+       * @param ctx - canva
+       * @param x0 - nogriežņa sākuma punkta x koordināta
+       * @param y0 - nogriežņa sākuma punkta y koordināta
+       * @param x1 - nogriežņa beigu punkta x koordināta
+       * @param y1 - nogriežņa beigu punkta y koordināta
+       * @param color - objekts ar RGB vērtībām
+       */
+      function drawLine(ctx, x0, y0, x1, y1, color) {
+        // tiek saglabāti nogriežņa parametri, jo x0, y0, x1, y1 var mainīties - iespējams tiks veikta apmaiņa
+        const startX = x0;
+        const endX = x1;
+        const startY = y0;
+        const endY = y1;
+
+        //ja dy>dx, tad līnija vairāk mainās pa y asi (nogrieznis ir stāvs)
+        const steep = Math.abs(y1 - y0) > Math.abs(x1 - x0);
+
+        // ĪP. GADĪJUMS 1: ja ir stāvs nogrieznis,
+        // tad īslaicīgi x un y koordinātas tiek samainītas vietām, lai varētu iet pa x asi
+        if (steep) {
+          [x0, y0] = [y0, x0];
+          [x1, y1] = [y1, x1];
+        }
+
+        // ĪP. GADĪJUMS 2: ja līnija iet no labās uz kreiso,
+        //tad samainām sākuma un beigu punktus, lai varētu iet pa x asi uz labo pusi
+        if (x0 > x1) {
+          [x0, x1] = [x1, x0];
+          [y0, y1] = [y1, y0];
+        }
+
+        //Attālumi starp sākuma un beigu punktiem uz asīm
+        const dx = x1 - x0; //vienmēr būs pozitīvs, jo GADĪJUMA 2 apstrāde nodrošina, ka tiks zīmēts no kreisās uz labo
+        const dy = Math.abs(y1 - y0);
+
+        let d = 2 * dy - dx;
+
+        //pašreizējā y koordināta, kas mainās tikai, kad funkcija nosaka, ka jāpāriet uz nākamo rindu;
+        // x tiks palielināts ciklā
+        let y = y0;
+
+        // nosaka, kādā virzienā mainās y koordināta: ja iet uz augšu, tad +1; uz leju -> -1
+        const stepY = y0 < y1 ? 1 : -1;
+
+        for (let x = x0; x <= x1; x++) {
+          //koordinātas, kas tiek zīmētas uz canvas
+          let drawX;
+          let drawY;
+
+          if (steep) {
+            // ja nogrieznis ir stāvs, tad iepriekš veicām koordinātu x un y apmaiņu;
+            // tagad koordinātas atliekam atpakaļ, lai būtu pareizi
+            drawX = y;
+            drawY = x;
+          } else {
+            drawX = x;
+            drawY = y;
+          }
+
+          // galvenais pikselis
+          drawAAPixel(ctx, drawX, drawY, startX, startY, endX, endY, color);
+
+          //Robojumu novēršana
+          if (steep) {
+            // stāva līnija -> katram y ir jāzīmē pikselis pa kreisi un pa labi no galvenā pikseļa
+            drawAAPixel(
+              ctx,
+              drawX - 1,
+              drawY,
+              startX,
+              startY,
+              endX,
+              endY,
+              color,
+            );
+            drawAAPixel(
+              ctx,
+              drawX + 1,
+              drawY,
+              startX,
+              startY,
+              endX,
+              endY,
+              color,
+            );
+          } else {
+            // lēzena līnija -> katram x ir jāzīmē pikselis zem un virs galvenā pikseļa
+            drawAAPixel(
+              ctx,
+              drawX,
+              drawY - 1,
+              startX,
+              startY,
+              endX,
+              endY,
+              color,
+            );
+            drawAAPixel(
+              ctx,
+              drawX,
+              drawY + 1,
+              startX,
+              startY,
+              endX,
+              endY,
+              color,
+            );
+          }
+
+          //ja d>0, nākamajā solī jāmaina arī y koordināta ( līnija ir novirzījusies augstāk);
+          // ja d<=0, mainās tikai x koordināta, jo x palielinās ciklā
+          if (d > 0) {
+            y = y + stepY;
+            d = d - 2 * dx;
+          }
+
+          d = d + 2 * dy;
+        }
+      }
+
+      drawLine(ctx1, 5, 2, 70, 50, GREEN);
+      drawLine(ctx2, 5, 40, 70, 30, WHITE);
+      drawLine(ctx3, 5, 70, 70, 20, LIGHT_BLUE);
+      drawLine(ctx4, 70, 50, 5, 2, PURPLE);
+      drawLine(ctx5, 40, 5, 40, 85, BLUE);
+      drawLine(ctx6, 60, 50, 20, 50, ORANGE);
+    </script>
+  </body>
+</html>
