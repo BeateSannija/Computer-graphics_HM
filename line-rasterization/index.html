@@ -23,20 +23,20 @@
     >
       <canvas
         id="canvas1"
-        width="400"
-        height="400"
+        width="300"
+        height="300"
         style="border: solid 2px black; display: block; background: white"
       ></canvas>
       <canvas
         id="canvas2"
-        width="400"
-        height="400"
+        width="300"
+        height="300"
         style="border: solid 2px black; display: block; background: black"
       ></canvas>
       <canvas
         id="canvas3"
-        width="400"
-        height="400"
+        width="300"
+        height="300"
         style="
           border: solid 2px black;
           display: block;
@@ -45,18 +45,18 @@
       ></canvas>
       <canvas
         id="canvas4"
-        width="400"
-        height="400"
+        width="300"
+        height="300"
         style="
           border: solid 2px black;
           display: block;
-          background: rgb(20, 20, 30);
+          background: rgb(227, 190, 23);
         "
       ></canvas>
       <canvas
         id="canvas5"
-        width="400"
-        height="400"
+        width="300"
+        height="300"
         style="
           border: solid 2px black;
           display: block;
@@ -65,24 +65,44 @@
       ></canvas>
       <canvas
         id="canvas6"
-        width="400"
-        height="400"
+        width="300"
+        height="300"
         style="
           border: solid 2px black;
           display: block;
           background: rgb(30, 30, 30);
         "
       ></canvas>
-      
     </div>
-    <p style="text-align: center; margin-top: 10px; max-width: 800px; margin-left: auto; margin-right: auto;">
-        Izmantoju Bresenhama algoritmu, bet veicu pārveidojumus, lai tas darbotos dažādiem nogriežņiem.
-        Robojumu novēršanai zīmēju blakus pikseļus, kuru intensitāti
-        aprēķinu pēc attāluma līdz taisnei.
-      </p>
+    <div
+  style="
+    max-width: 850px;
+    margin: 14px auto 0 auto;
+    text-align: left;
+    line-height: 1.45;
+  "
+>
+  <p>
+    Izmantoju Bresenhama algoritmu, veicot koordinātu normalizāciju, lai tas
+    darbotos dažādiem nogriežņu virzieniem un slīpumiem. Robojumu novēršanai
+    papildus tiek zīmēti blakus pikseļi, kuru intensitāte tiek aprēķināta pēc
+    attāluma līdz taisnei.
+  </p>
+
+  <ul>
+    <li>
+      Pikseļu izmērs ir palielināts, lai demonstrācijā skaidrāk būtu redzami
+      atsevišķi rastra punkti.
+    </li>
+    <li>
+      Demonstrācijā iekļauti arī horizontāls un vertikāls nogrieznis, jo tie ir
+      robežgadījumi .
+    </li>
+  </ul>
+</div>
 
     <script>
-      const PIXEL_SIZE = 4;
+      const PIXEL_SIZE = 4; //palielināts pikseļu izmērs, lai demo varētu redzēt rastra punktus
 
       const GREEN = { r: 34, g: 139, b: 34 };
       const WHITE = { r: 255, g: 255, b: 255 };
@@ -105,14 +125,14 @@
       const ctx6 = canvas6.getContext("2d");
 
       /**
-       * Uzzīmē pikseli ar noteiku krāsu un caurspīdīgumu
+       * Uzzīmē pikseli ar noteiktu krāsu un caurspīdīgumu
        * @param ctx - canvas konteksts
-       * @param x - pikseļa x koordinātas canvā
-       * @param y - pikseļa y koordinātas canvā
+       * @param x - pikseļa x koordinātas 
+       * @param y - pikseļa y koordinātas 
        * @param color - objekts ar RGB vērtībām
        * @param alpha - pikseļa intensitāte
        */
-      function setPixel(ctx, x, y, color, alpha = 1) {
+      function setPixel(ctx, x, y, color, alpha) {
         // izmantojot rgba objektu varu izmantot šo funkciju, lai apvienotu gan galveno pikseļu,
         // gan blakus pikseļu (ar mazāku intensitāti) iezīmēšanu; citādi bija problēmas ar intensitātes (alpha) pievienošanu
         ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
@@ -190,14 +210,14 @@
         //ja dy>dx, tad līnija vairāk mainās pa y asi (nogrieznis ir stāvs)
         const steep = Math.abs(y1 - y0) > Math.abs(x1 - x0);
 
-        // ĪP. GADĪJUMS 1: ja ir stāvs nogrieznis,
+        // NORMALIZĀCIJA 1: ja ir stāvs nogrieznis,
         // tad īslaicīgi x un y koordinātas tiek samainītas vietām, lai varētu iet pa x asi
         if (steep) {
           [x0, y0] = [y0, x0];
           [x1, y1] = [y1, x1];
         }
 
-        // ĪP. GADĪJUMS 2: ja līnija iet no labās uz kreiso,
+        // NORMALIZĀCIJA 2: ja līnija iet no labās uz kreiso,
         //tad samainām sākuma un beigu punktus, lai varētu iet pa x asi uz labo pusi
         if (x0 > x1) {
           [x0, x1] = [x1, x0];
@@ -205,7 +225,7 @@
         }
 
         //Attālumi starp sākuma un beigu punktiem uz asīm
-        const dx = x1 - x0; //vienmēr būs pozitīvs, jo GADĪJUMA 2 apstrāde nodrošina, ka tiks zīmēts no kreisās uz labo
+        const dx = x1 - x0; //vienmēr būs pozitīvs, jo NORMALIZĀCIJA 2 apstrāde nodrošina, ka tiks zīmēts no kreisās uz labo
         const dy = Math.abs(y1 - y0);
 
         let d = 2 * dy - dx;
@@ -224,7 +244,8 @@
 
           if (steep) {
             // ja nogrieznis ir stāvs, tad iepriekš veicām koordinātu x un y apmaiņu;
-            // tagad koordinātas atliekam atpakaļ, lai būtu pareizi
+            //tagad tās jāsamaina atpakaļ, lai lai nogrieznis tiktu attēlots sākotnējā virzienā,
+            //nevis kā apgriezta līnija
             drawX = y;
             drawY = x;
           } else {
@@ -282,8 +303,8 @@
             );
           }
 
-          //ja d>0, nākamajā solī jāmaina arī y koordināta ( līnija ir novirzījusies augstāk);
-          // ja d<=0, mainās tikai x koordināta, jo x palielinās ciklā
+          //ja d>0, nākamajā solī jāmaina arī y koordināta (ideālā līnija ir novirzījusies par daudz);
+          // ja d<=0 (else gadījums), mainās tikai x koordināta, jo x palielinās ciklā
           if (d > 0) {
             y = y + stepY;
             d = d - 2 * dx;
@@ -293,12 +314,12 @@
         }
       }
 
-      drawLine(ctx1, 5, 2, 70, 50, GREEN);
-      drawLine(ctx2, 5, 40, 70, 30, WHITE);
-      drawLine(ctx3, 5, 70, 70, 20, LIGHT_BLUE);
-      drawLine(ctx4, 70, 50, 5, 2, PURPLE);
-      drawLine(ctx5, 40, 5, 40, 85, BLUE);
-      drawLine(ctx6, 60, 50, 20, 50, ORANGE);
+      drawLine(ctx1, 5, 2, 70, 50, GREEN);  // dilstošs nogrieznis, uzdots no kreisās puses
+      drawLine(ctx2, 5, 40, 70, 30, WHITE); // ļoti lēzens nogrieznis, uzdots no kreisās puses
+      drawLine(ctx3, 25, 65, 40, 10, LIGHT_BLUE); // stāvs nogrieznis, uzdots no kreisās puses
+      drawLine(ctx4, 65, 70, 15, 5, PURPLE); //nogrieznis, kas tiek uzdots no labās uz kreiso jeb x0>x1
+      drawLine(ctx5, 37, 5, 37, 60, BLUE); // vertikāls nogrieznis
+      drawLine(ctx6, 60, 40, 15, 40, ORANGE); // horizontāls nogrieznis
     </script>
   </body>
 </html>
