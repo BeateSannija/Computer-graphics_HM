@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kontrasta palielināšanas transformācija</title>
+  </head>
+  <body>
+    <h3 style="display: flex; justify-content: center; align-items: center">
+      9a Izstrādāt datorprogrammu, kas realizē kontrasta palielināšanas
+      transformāciju.
+    </h3>
+    <div
+      style="
+        display: grid;
+        grid-template-columns: auto auto;
+        justify-content: center;
+        gap: 20px;
+      "
+    >
+      <div style="text-align: center">
+        <p><b>Oriģinālais attēls</b></p>
+        <canvas id="originalCanvas" style="border: 2px solid black"></canvas>
+      </div>
+
+      <div style="text-align: center">
+        <p><b>Oriģinālā histogramma</b></p>
+        <canvas
+          id="originalHistogramCanvas"
+          style="border: 2px solid black"
+        ></canvas>
+      </div>
+
+      <div style="text-align: center">
+        <p><b>Pēc līmeņu izplešanas</b></p>
+        <canvas id="resultCanvas" style="border: 2px solid black"></canvas>
+      </div>
+
+      <div style="text-align: center">
+        <p><b>Rezultāta histogramma</b></p>
+        <canvas
+          id="resultHistogramCanvas"
+          style="border: 2px solid black"
+        ></canvas>
+      </div>
+    </div>
+    <p>Darbā realizēta kontrasta palielināšana ar līmeņu izplešanu</p>
+  </body>
+</html>
+
+<script>
+  const img = new Image();
+  img.src = "/plava.jpg";
+
+  const scale = 0.5;
+
+  img.onload = function () {
+    const originalCanvas = document.getElementById("originalCanvas");
+    const originalHistogramCanvas = document.getElementById(
+      "originalHistogramCanvas",
+    );
+
+    originalCanvas.width = img.width * scale;
+    originalCanvas.height = img.height * scale;
+    originalHistogramCanvas.width = originalCanvas.width;
+    originalHistogramCanvas.height = originalCanvas.height;
+
+    const ctx = originalCanvas.getContext("2d");
+
+    ctx.drawImage(img, 0, 0, originalCanvas.width, originalCanvas.height);
+    const imageData = ctx.getImageData(
+      0,
+      0,
+      originalCanvas.width,
+      originalCanvas.height,
+    );
+
+    console.log(imageData);
+    const pixels = imageData.data;
+
+    let rmin = 255;
+    let rmax = 0;
+
+    const histogram = new Array(256).fill(0);
+
+    for (let i = 0; i < pixels.length; i += 4) {
+      const gray = Math.round((pixels[i] + pixels[i + 1] + pixels[i + 2]) / 3);
+      histogram[gray]++;
+    }
+
+    drawHistogram(histogram, "originalHistogramCanvas");
+
+    for (let i = 0; i < pixels.length; i += 4) {
+      const gray = (pixels[i] + pixels[i + 1] + pixels[i + 2]) / 3;
+
+      if (gray < rmin) {
+        rmin = gray;
+      }
+
+      if (gray > rmax) {
+        rmax = gray;
+      }
+    }
+
+    console.log("rmin =", rmin);
+    console.log("rmax =", rmax);
+
+    const resultCanvas = document.getElementById("resultCanvas");
+    resultCanvas.width = originalCanvas.width;
+    resultCanvas.height = originalCanvas.height;
+
+    const resultCtx = resultCanvas.getContext("2d");
+    const resultImageData = resultCtx.createImageData(
+      originalCanvas.width,
+      originalCanvas.height,
+    );
+
+    const resultPixels = resultImageData.data;
+
+    for (let i = 0; i < pixels.length; i += 4) {
+  const red = pixels[i];
+  const green = pixels[i + 1];
+  const blue = pixels[i + 2];
+
+  let newRed = ((red - rmin) * 255) / (rmax - rmin);
+  let newGreen = ((green - rmin) * 255) / (rmax - rmin);
+  let newBlue = ((blue - rmin) * 255) / (rmax - rmin);
+
+  newRed = Math.max(0, Math.min(255, newRed));
+  newGreen = Math.max(0, Math.min(255, newGreen));
+  newBlue = Math.max(0, Math.min(255, newBlue));
+
+  resultPixels[i] = newRed;
+  resultPixels[i + 1] = newGreen;
+  resultPixels[i + 2] = newBlue;
+  resultPixels[i + 3] = pixels[i + 3];
+}
+
+    resultCtx.putImageData(resultImageData, 0, 0);
+
+    let newMin = 255;
+    let newMax = 0;
+
+    for (let i = 0; i < resultPixels.length; i += 4) {
+      const value = resultPixels[i];
+
+      if (value < newMin) newMin = value;
+      if (value > newMax) newMax = value;
+    }
+
+    console.log("newMin =", newMin);
+    console.log("newMax =", newMax);
+
+    const resultHistogram = new Array(256).fill(0);
+
+    for (let i = 0; i < resultPixels.length; i += 4) {
+      const gray = resultPixels[i];
+      resultHistogram[Math.round(gray)]++;
+    }
+
+    const resultHistogramCanvas = document.getElementById(
+      "resultHistogramCanvas",
+    );
+    resultHistogramCanvas.width = originalCanvas.width;
+    resultHistogramCanvas.height = originalCanvas.height;
+
+    drawHistogram(resultHistogram, "resultHistogramCanvas");
+  };
+
+  //   TODO paskaidrot šo
+  function drawHistogram(histogram, canvasId) {
+    const canvas = document.getElementById(canvasId);
+    const ctx = canvas.getContext("2d");
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const maxValue = Math.max(...histogram);
+    const barWidth = canvas.width / 256;
+
+    for (let i = 0; i < 256; i++) {
+      const barHeight = (histogram[i] / maxValue) * canvas.height;
+
+      ctx.fillRect(
+        i * barWidth,
+        canvas.height - barHeight,
+        barWidth,
+        barHeight,
+      );
+    }
+  }
+</script>
