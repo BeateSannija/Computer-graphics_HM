@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite'
 
 export default defineConfig({
-  base: '/COMPUTER-GRAPHICS/',
+  base: '/Computer-graphics_HM/',
 })

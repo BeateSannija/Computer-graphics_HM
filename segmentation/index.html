@@ -102,8 +102,7 @@
 
 <script>
   const img = new Image();
-  // img.src = "/kresls2.png";
-  img.src = "/image.png";
+  img.src = "tree.png";
 
   // Tiek izsaukts automātiski pēc tam, kad attēls ir ielādēts,
   // tikai pēc ielādes var iegūt attēla izmērus un pikseļu datus
@@ -294,7 +293,7 @@
    */
   function findThreshold(histogram) {
     // Mainīgie, kuros glabāsies atrasto pīķu pozīcijas
-    let firstPeak = 0;    //tumšajā daļā
+    let firstPeak = 0; //tumšajā daļā
 
     // Sāk no 128, lai pīķi meklētu tikai gaišajā histogrammas daļā
     // (svarīgi, kad fons ir tumšs)
