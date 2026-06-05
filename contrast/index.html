@@ -66,12 +66,11 @@
         margin-top: 10px;
       "
     >
-      Darbā realizēta kontrasta palielināšana ar līmeņu izplešanu. Rezultātā var
-      novērot, ka kontrasts pieaug (skatoties uz attēlu); histogramma kļūst
-      platāka; histogrammas forma būtiski nemainās. Pikseļi, kam bija tumšākais
-      tonis oriģinālajā attēlā, kļuva par pilnīgi melnu; gaišākie pikselis/i
-      kļuva pilnīgi balti. Izmantoju formulu s= ((r-rmin) / (rmax - rmin)) *
-      255.
+      Rezultātā var novērot, ka kontrasts pieaug: attēlā labāk izceļas tumšās un
+      gaišās daļas, bet histogramma tiek izplesta plašākā intensitāšu diapazonā.
+      Līmeņu izplešanā tumšākais sākotnējais intensitātes līmenis tiek
+      pārveidots par 0, bet gaišākais — par 255. Izmantotā transformācija: s =
+      ((r - rmin) / (rmax - rmin)) · 255.
     </p>
   </body>
 </html>
@@ -93,6 +92,7 @@
       "resultHistogramCanvas",
     );
 
+    // Uzzīmē oriģinālo attēlu uz canvā
     const originalCtx = originalCanvas.getContext("2d");
     originalCtx.drawImage(
       img,
@@ -102,6 +102,8 @@
       originalCanvas.height,
     );
 
+    // Nolasa attēla pikseļu datus no canvas
+    // ImageData satur pikseļus RGBA formātā
     const imageData = originalCtx.getImageData(
       0,
       0,
@@ -109,41 +111,54 @@
       originalCanvas.height,
     );
 
+    // Izveido un uzzīmē oriģinālā attēla histogrammu pēc intensitātes līmeņiem
+    // Lai parādītu, ka oriģinālajā attēlā līmeņi neaizņem visu intensitātes diapazonu
     const originalHistogram = createHistogram(imageData.data);
     drawHistogram(originalHistogram, originalHistogramCanvas);
 
+    // Veic kontrasta palielināšanu ar līmeņu izplešanu (galvenās funkcijas izsaukšana)
     const resultImageData = applyContrastStretching(imageData);
 
+    // Uzzīmē apstrādāto attēlu rezultāta canvā
     const resultCtx = resultCanvas.getContext("2d");
     resultCtx.putImageData(resultImageData, 0, 0);
 
+    // Izveido un uzzīmē rezultāta attēla histogrammu
+    // Lai parādītu, ka tagad ir veikta līmeņu izplešana
     const resultHistogram = createHistogram(resultImageData.data);
     drawHistogram(resultHistogram, resultHistogramCanvas);
   };
 
+  //GALVENĀ FUNKCIJA
+
   /**
-   * Galvenā funkcija: realizē kontrasta palielināšanu ar līmeņu izplešanu.
-   * Vispirms atrod rmin un rmax, pēc tam katram RGB kanālam pielieto
-   * līmeņu izplešanas formulu.
+   * Realizē kontrasta palielināšanu ar līmeņu izplešanu
+   * Vispirms atrod minimālās un maksimālās intensitātes līmeni (rmin un rmax),
+   * pēc tam R, G, B pielieto līmeņu izplešanu
    * @param imageData - oriģinālā attēla ImageData objekts
-   * @returns jauns ImageData objekts pēc kontrasta palielināšanas
+   * Atgriež jaunu ImageData objektu pēc kontrasta palielināšanas
    */
   function applyContrastStretching(imageData) {
-    const pixels = imageData.data;
-    const resultImageData = new ImageData(imageData.width, imageData.height);
-    const resultPixels = resultImageData.data;
+    const pixels = imageData.data; // Oriģinālā attēla pikseļu masīvs
+    const resultImageData = new ImageData(imageData.width, imageData.height); // Izveido jaunu attēlu, kurā saglabās kontrasta palielināšanas rezultātu
+    const resultPixels = resultImageData.data; // Gala attēla pikseļu masīvs
 
+    // Atrod minimālo un maksimālo intensitātes līmeni attēlā
+    // Šīs vērtības kļūs par jaunā diapazona robežām:
+    // rmin tiks pārveidots par 0, bet rmax par 255
     const { rmin, rmax } = findMinMaxIntensity(pixels);
 
-    // ImageData.data masīvā katrs pikselis aizņem 4 vērtības:
-    // red, green, blue un alpha, tāpēc ciklā ejam ar soli 4.
+    // Apstrādā katru attēla pikseli
+    // Katram pikselim RGBA formātā atbilst 4 vērtības (tāpēc indekss tiek palielināts par 4)
     for (let i = 0; i < pixels.length; i += 4) {
+      // R, G, B pielieto līmeņu izplešanas transformāciju:
+      // tumšākās vērtības tiek virzītas tuvāk 0, bet gaišākās tuvāk 255
       resultPixels[i] = stretchLevel(pixels[i], rmin, rmax);
       resultPixels[i + 1] = stretchLevel(pixels[i + 1], rmin, rmax);
       resultPixels[i + 2] = stretchLevel(pixels[i + 2], rmin, rmax);
 
-      // Saglabājam alpha kanālu no oriģinālā attēla,
-      // lai nemainītu pikseļa caurspīdīgumu.
+      // Saglabājam alpha no oriģinālā attēla,
+      // lai nemainītu pikseļa caurspīdīgumu
       resultPixels[i + 3] = pixels[i + 3];
     }
 
@@ -153,31 +168,36 @@
   // PALĪGFUNKCIJAS
 
   /**
-   * Aprēķina pikseļa pelēktoņa/intensitātes vērtību.
-   * To izmanto histogrammas veidošanai un rmin/rmax atrašanai.
-   * @param red - sarkanā kanāla vērtība
-   * @param green - zaļā kanāla vērtība
-   * @param blue - zilā kanāla vērtība
-   * @returns pikseļa vidējā intensitāte diapazonā [0,255]
+   * Aprēķina pikseļa intensitātes vērtību
+   * To izmanto histogrammas veidošanai un rmin/rmax atrašanai
+   * @param red - sarkanā vērtība
+   * @param green - zaļā vērtība
+   * @param blue - zilā vērtība
+   * Atgriež pikseļa vidējo intensitāti diapazonā [0,255]
    */
   function getGrayValue(red, green, blue) {
     return Math.round((red + green + blue) / 3);
   }
 
   /**
-   * Atrod attēla minimālo un maksimālo intensitātes līmeni.
-   * Šīs vērtības tiek izmantotas līmeņu izplešanas formulā.
+   * Atrod attēla minimālo un maksimālo intensitātes līmeni
    * @param pixels - attēla pikseļu masīvs RGBA formātā
-   * @returns objekts ar rmin un rmax vērtībām
+   * Atgriež objektu ar rmin un rmax vērtībām
    */
   function findMinMaxIntensity(pixels) {
+    // Sākumā pieņem galējās iespējamās vērtības; meklēšanas laikā mainīsies
     let rmin = 255;
     let rmax = 0;
 
+    // Pāriet pāri katram attēla pikselim
     for (let i = 0; i < pixels.length; i += 4) {
+      // Aprēķina pikseļa intensitāti
       const gray = getGrayValue(pixels[i], pixels[i + 1], pixels[i + 2]);
 
+      // Ja atrasta mazāka intensitāte, atjauno min intensitāti
       if (gray < rmin) rmin = gray;
+
+      // Ja atrasta lielāka intensitāte, atjauno max intensitāti
       if (gray > rmax) rmax = gray;
     }
 
@@ -185,30 +205,33 @@
   }
 
   /**
-   * Pielieto līmeņu izplešanas formulu vienai krāsas kanāla vērtībai.
-   * Formula pārveido sākotnējo vērtību tā, lai rmin kļūtu par 0,
-   * bet rmax kļūtu par 255.
-   * @param value - sākotnējā krāsas kanāla vērtība
-   * @param rmin - minimālais intensitātes līmenis attēlā
-   * @param rmax - maksimālais intensitātes līmenis attēlā
-   * @returns jaunā krāsas kanāla vērtība diapazonā [0,255]
+   * Pielieto līmeņu izplešanas formulu vienai RGB vērtībai (R, G vai B);
+   * Pārveido sākotnējo vērtību tā, lai rmin kļūtu par 0, bet rmax kļūtu par 255
+   * @param value - sākotnējā R, G vai B vērtība
+   * @param rmin - min intensitātes līmenis attēlā
+   * @param rmax - max intensitātes līmenis attēlā
+   * Atgriež jauno vērtību diapazonā [0,255]
    */
   function stretchLevel(value, rmin, rmax) {
     const newValue = ((value - rmin) * 255) / (rmax - rmin);
-    // Nodrošinām, ka iegūtā vērtība paliek intervālā [0,255]
+
+    // Nodrošina, ka iegūtā vērtība paliek intervālā [0,255]
     return Math.max(0, Math.min(255, newValue));
   }
 
   /**
-   * Izveido attēla histogrammu pēc pikseļu intensitātes.
-   * Histogrammas masīvā katrs indekss atbilst intensitātes līmenim,
-   * bet vērtība norāda, cik pikseļu ir šajā līmenī.
+   * Izveido attēla histogrammu pēc pikseļu intensitātes
    * @param pixels - attēla pikseļu masīvs RGBA formātā
-   * @returns histogrammas masīvs ar 256 vērtībām
+   * Atgriež histogrammas masīvu ar 256 vērtībām
    */
   function createHistogram(pixels) {
+    // Izveido masīvu ar 256 vērtībām, jo intensitāte var būt no 0 līdz 255
     const histogram = new Array(256).fill(0);
 
+    // Pārejam cauri visiem attēla pikseļiem;
+    // no RGB vērtībām aprēķina intensitāti un
+    // histogrammas stabiņu, tādējādi saskaitot,
+    // cik reižu katra intensitāte parādās attēlā
     for (let i = 0; i < pixels.length; i += 4) {
       const gray = getGrayValue(pixels[i], pixels[i + 1], pixels[i + 2]);
       histogram[gray]++;
@@ -218,20 +241,19 @@
   }
 
   /**
-   * Uzzīmē histogrammu uz canvas.
-   * Katram intensitātes līmenim [0,255] tiek uzzīmēts viens stabiņš.
-   * Stabiņa augstums ir proporcionāls pikseļu skaitam šajā līmenī.
+   * Uzzīmē histogrammu canvā
    * @param histogram - histogrammas masīvs
    * @param canvas - canvas elements, uz kura zīmēt histogrammu
    */
   function drawHistogram(histogram, canvas) {
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d"); //iegūst canvas zīmēšanai kontekst
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+    // Atrod lielāko histogrammas vērtību,
+    // lai varētu noteikt stabiņu augstumus
     const maxValue = Math.max(...histogram);
     const barWidth = canvas.width / 256;
 
+    // Uzzīmē stabiņu katrai intensitātes vērtībai
     for (let i = 0; i < 256; i++) {
       // Histogrammas stabiņa augstumu mērogojam pret lielāko histogrammas vērtību,
       // lai histogramma ietilptu canvas augstumā.
