@@ -22,63 +22,102 @@
         <p><b>Oriģinālais attēls</b></p>
         <canvas
           id="originalCanvas"
-          width="400"
+          width="350"
           height="400"
           style="border: 2px solid black"
         ></canvas>
       </div>
 
       <div style="text-align: center">
-        <p><b>Histogramma</b></p>
+        <p><b>Segmentētais attēls</b></p>
         <canvas
-          id="histogramCanvas"
+          id="resultCanvas"
+          width="350"
+          height="400"
+          style="border: 2px solid black"
+        ></canvas>
+      </div>
+    </div>
+    <div
+      style="
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        margin-top: 20px;
+      "
+    >
+      <div style="text-align: center">
+        <h3 id="redTitle">R histogramma</h3>
+        <canvas
+          id="histogramRedCanvas"
+          width="600"
+          height="300"
+          style="border: 2px solid black"
+        ></canvas>
+      </div>
+      <div style="text-align: center">
+        <h3 id="greenTitle">G histogramma</h3>
+        <canvas
+          id="histogramGreenCanvas"
+          width="600"
+          height="300"
+          style="border: 2px solid black"
+        ></canvas>
+      </div>
+      <div style="text-align: center">
+        <h3 id="blueTitle">B histogramma</h3>
+        <canvas
+          id="histogramBlueCanvas"
           width="600"
           height="300"
           style="border: 2px solid black"
         ></canvas>
       </div>
     </div>
-    <div style="display: flex; justify-content: center; margin-top: 20px">
-      <div style="text-align: center">
-        <p><b>Segmentētais attēls</b></p>
-        <canvas
-          id="resultCanvas"
-          width="400"
-          height="400"
-          style="border: 2px solid black"
-        ></canvas>
-      </div>
-    </div>
-    <p
+    <div
       style="
-        text-align: center;
+        display: flex;
+        flex-direction: column;
         max-width: 600px;
-        margin: auto;
-        margin-top: 10px;
+        justify-self: center;
       "
     >
-      Pogas attēls tika izvēlēts tā, lai objekts un fons būtu skaidri atdalāmi
-      pēc intensitātes līmeņiem. Histogrammā veidojas divas izteiktas
-      intensitāšu grupas, kas ļauj noteikt vienu globālu sliekšņa vērtību un
-      veiksmīgi segmentēt attēlu
-    </p>
+      <h4 style="text-align: center; max-width: 600px; margin: 0">
+        Programma izveido atsevišķas RGB histogrammas, līdzīgi kā lekcijā
+        apskatītajā piemēra uzdevumā par tapiņu segmentēšanu.
+      </h4>
+      <p>
+        Katram no RGB: tiek atrasti divi pīķi, kas atbilst objekta un fona
+        pikseļu grupām; starp šiem pīķiem tiek noteikta ieplaka, un tās centrālā
+        vērtība tiek izmantota kā segmentēšanas slieksnis.
+      </p>
+      <p>
+        Pēc sliekšņu noteikšanas tiek veikta attēla segmentēšana. Pikseļi, kuru
+        RGB vērtības atbilst objekta nosacījumam, tiek klasificēti kā objekts,
+        bet pārējie kā fons. Rezultātā objekts tiek veiksmīgi atdalīts no fona.
+      </p>
+    </div>
   </body>
 </html>
 
 <script>
   const img = new Image();
-  // img.src = "/poga.jpg";
-  img.src = "/kresls.png";
-  // img.src = "/image.png";
+  // img.src = "/kresls2.png";
+  img.src = "/image.png";
 
-  //Tiek izsaukts automātiski pēc tam, kad attēls ir ielādēts
+  // Tiek izsaukts automātiski pēc tam, kad attēls ir ielādēts,
   // tikai pēc ielādes var iegūt attēla izmērus un pikseļu datus
   img.onload = function () {
     // Iegūst canvas no DOM
     const originalCanvas = document.getElementById("originalCanvas");
-    const histogramCanvas = document.getElementById("histogramCanvas");
+    const histogramRedCanvas = document.getElementById("histogramRedCanvas");
+    const histogramGreenCanvas = document.getElementById(
+      "histogramGreenCanvas",
+    );
+    const histogramBlueCanvas = document.getElementById("histogramBlueCanvas");
     const resultCanvas = document.getElementById("resultCanvas");
 
+    //Iegūst oriģinālā canvas attēla kontekstu, lai varētu zīmēt attēlu
     const originalCtx = originalCanvas.getContext("2d");
 
     originalCtx.drawImage(
@@ -89,6 +128,8 @@
       originalCanvas.height,
     );
 
+    // Nolasa attēla pikseļu datus no attēla, kas iezīmēts canvā
+    // ImageData satur pikseļus RGBA formātā
     const imageData = originalCtx.getImageData(
       0,
       0,
@@ -96,43 +137,76 @@
       originalCanvas.height,
     );
 
-    const histogram = createHistogram(imageData.data);
+    //Izveido un uzzīmē histogrammas R, G, B (tiks izmanotas sliekšņu noteikšanai)
+    const histograms = createRGBHistograms(imageData.data);
+    drawHistogram(histograms.red, histogramRedCanvas);
+    drawHistogram(histograms.green, histogramGreenCanvas);
+    drawHistogram(histograms.blue, histogramBlueCanvas);
 
-    drawHistogram(histogram, histogramCanvas);
+    // Katram R, G, B atrod slieksni histogrammā
+    const tR = findThreshold(histograms.red);
+    const tG = findThreshold(histograms.green);
+    const tB = findThreshold(histograms.blue);
 
-    const threshold = findThreshold(histogram);
+    //Izmanto iegūtos sliekšņus, lai veiktu segmentēšanu
+    //Rezultātā iegūstam melnbaltu attēlu
+    const resultImageData = applyRGBThresholding(imageData, tR, tG, tB);
 
-    console.log("Threshold =", threshold);
+    //Izdrukā iegūtās sliekšņu vērtības pie histogrammām
+    document.getElementById("redTitle").innerHTML =
+      `<b>R histogramma (TR = ${tR})</b>`;
 
-    const resultImageData = applyThresholding(imageData, threshold);
+    document.getElementById("greenTitle").innerHTML =
+      `<b>G histogramma (TG = ${tG})</b>`;
 
+    document.getElementById("blueTitle").innerHTML =
+      `<b>B histogramma (TB = ${tB})</b>`;
+
+    //Uzzīmē segmentēto attēlu uz rezultātam paredzētās canvas
     const resultCtx = resultCanvas.getContext("2d");
-
     resultCtx.putImageData(resultImageData, 0, 0);
   };
 
-  function applyThresholding(imageData, threshold) {
+  //GALVENĀ FUNKCIJA
+
+  /**
+   * Veic attēla sliekšņošanu pēc RGB sliekšņiem:
+   * katram pikselim tiek pārbaudīts, vai tā R, G un B vērtības atbilst objekta nosacījumam;
+   * ja pikselis pieder objektam, tas tiek attēlots melns, citādi - balts.
+   * @param imageData - oriģinālā attēla pikseļu dati
+   * @param tR - Red slieksnis
+   * @param tG - Green slieksnis
+   * @param tB - Blue slieksnis
+   * Atgriež jaunu ImageData objektu ar segmentēto attēlu
+   */
+  function applyRGBThresholding(imageData, tR, tG, tB) {
+    // Izveido jaunu attēlu, kurā saglabās segmentēšanas rezultātu
     const resultImageData = new ImageData(imageData.width, imageData.height);
 
-    const pixels = imageData.data;
-    const resultPixels = resultImageData.data;
+    const pixels = imageData.data; // Oriģinālā attēla pikseļu masīvs
+    const resultPixels = resultImageData.data; // Gala attēla pikseļu masīvs
 
+    // Apstrādā katru attēla pikseli;
+    // katram pikselim RGBA formātā atbilst 4 vērtības, tāpēc indeksu palielina par 4
     for (let i = 0; i < pixels.length; i += 4) {
-      const gray = getGrayValue(pixels[i], pixels[i + 1], pixels[i + 2]);
-
-      if (isObject(gray, threshold)) {
-        resultPixels[i] = 255;
-        resultPixels[i + 1] = 255;
-        resultPixels[i + 2] = 255;
-      } else {
+      //pārbauda, vai pikselis pieder objektam
+      if (isObject(pixels[i], pixels[i + 1], pixels[i + 2], tR, tG, tB)) {
+        // Objektam piederošie piekseļi tiek iekrāsoti melni
         resultPixels[i] = 0;
         resultPixels[i + 1] = 0;
         resultPixels[i + 2] = 0;
+      } else {
+        // Fonam piederošie pikseļi tiek iekrāsoti balti
+        resultPixels[i] = 255;
+        resultPixels[i + 1] = 255;
+        resultPixels[i + 2] = 255;
       }
 
+      // alfa saglabā pilnībā necaurspīdīgu
       resultPixels[i + 3] = 255;
     }
 
+    // Atgriežam segmentēto attēlu
     return resultImageData;
   }
 
@@ -140,63 +214,64 @@
 
   /**
    * Nosaka, vai pikselis pieder objektam.
-   * @param gray - pikseļa pelēktoņa vērtība
-   * @param threshold - sliekšņa vērtība
-   * @returns true, ja pikselis pieder objektam
+   * Šis strādā gadījumā, kad objekts ir tumšāks par fonu
+   * līdz ar to pārbauda, vai visas RGB vērtības ir zem attiecīgajiem sliekšņiem
+   * @param red - pikseļa sarkanā vērtība
+   * @param green - pikseļa zaļā vērtība
+   * @param blue - pikseļa zilā vērtība
+   * @param tR - sarkanais slieksnis
+   * @param tG - zaļais slieksnis
+   * @param tB - zilais slieksnis
+   * Atgriež true, ja pikselis tiek uzsaktīts kā daļa no objekta
    */
-  function isObject(gray, threshold) {
-    return gray > threshold;
+  function isObject(red, green, blue, tR, tG, tB) {
+    return red < tR && green < tG && blue < tB;
   }
 
   /**
-   * Aprēķina pikseļa pelēktoņa/intensitātes vērtību.
-   * To izmanto histogrammas veidošanai un rmin/rmax atrašanai.
-   * @param red - sarkanā kanāla vērtība
-   * @param green - zaļā kanāla vērtība
-   * @param blue - zilā kanāla vērtība
-   * @returns pikseļa vidējā intensitāte diapazonā [0,255]
-   */
-  function getGrayValue(red, green, blue) {
-    return Math.round((red + green + blue) / 3);
-  }
-
-  /**
-   * Izveido attēla histogrammu pēc pikseļu intensitātes.
-   * Histogrammas masīvā katrs indekss atbilst intensitātes līmenim,
-   * bet vērtība norāda, cik pikseļu ir šajā līmenī.
+   * Izveido trīs histogrammas (R, G, B)
    * @param pixels - attēla pikseļu masīvs RGBA formātā
-   * @returns histogrammas masīvs ar 256 vērtībām
+   * Atgriež objektu ar red, green un blue histogrammām
    */
-  function createHistogram(pixels) {
-    const histogram = new Array(256).fill(0);
+  function createRGBHistograms(pixels) {
+    // Izveido masīvus ar garumu 256,
+    // kur indekss atbilst vienai krāsas intensitātes vērtībai
+    const red = new Array(256).fill(0);
+    const green = new Array(256).fill(0);
+    const blue = new Array(256).fill(0);
 
+    // Pārejam cauri visiem attēla pikseļiem;
+    // atrastajām RGB vērtībām palielinām atbilstošo
+    // histogrammas stabiņu, tādējādi saskaitot,
+    // cik reižu katra intensitāte parādās attēlā
     for (let i = 0; i < pixels.length; i += 4) {
-      const gray = getGrayValue(pixels[i], pixels[i + 1], pixels[i + 2]);
-      histogram[gray]++;
+      red[pixels[i]]++;
+      green[pixels[i + 1]]++;
+      blue[pixels[i + 2]]++;
     }
 
-    return histogram;
+    return { red, green, blue };
   }
 
   /**
-   * Uzzīmē histogrammu uz canvas.
-   * Katram intensitātes līmenim [0,255] tiek uzzīmēts viens stabiņš.
-   * Stabiņa augstums ir proporcionāls pikseļu skaitam šajā līmenī.
+   * Uzzīmē histogrammu canvā
    * @param histogram - histogrammas masīvs
    * @param canvas - canvas elements, uz kura zīmēt histogrammu
    */
   function drawHistogram(histogram, canvas) {
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d"); //iegūst canvas zīmēšanai kontekstu
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+    // Atrod lielāko histogrammas vērtību,
+    // lai varētu noteikt stabiņu augstumus
     const maxValue = Math.max(...histogram);
+
     const barWidth = canvas.width / 256;
 
+    // Uzzīmē stabiņu katrai intensitātes vērtībai.
     for (let i = 0; i < 256; i++) {
-      // Kvadrātsaknes mērogošana tiek izmantota tikai histogrammas attēlošanai,
-      // lai būtu redzami arī mazāki stabiņi. Paši histogrammas dati netiek mainīti.
-      // const barHeight = (histogram[i] / maxValue) * canvas.height;
+      // Kvadrātsakne tiek izmantota tikai histogrammas attēlošanai;
+      // tā vizuāli palielina mazākus stabiņus, lai tie būtu labāk saskatāmi;
+      // histogrammas vērtības un sliekšņa aprēķini no tā nemainās
       const barHeight = Math.sqrt(histogram[i] / maxValue) * canvas.height;
 
       ctx.fillRect(
@@ -208,47 +283,65 @@
     }
   }
 
+  /**
+   * Atrod sliekšņa vērtību pēc histogrammas:
+   *  1) Vispirms tiek atrasts viens pīķis tumšajā histogrammas daļā;
+   *  2) viens pīķis gaišajā histogrammas daļā;
+   *  3) starp šiem pīķiem tiek meklēta ieplaka;
+   *  4) par slieksni tiek ņemta šīs ieplakas vidējā x-ass vērtība
+   * @param histogram
+   * Atgriež sliekšņa vērtību diapazonā [0,255]
+   */
+  function findThreshold(histogram) {
+    // Mainīgie, kuros glabāsies atrasto pīķu pozīcijas
+    let firstPeak = 0;    //tumšajā daļā
 
-//atrodam vidējo vērtību starp diviem pīķiem
-function findThreshold(histogram) {
-  let firstPeak = 0;
-  let secondPeak = 128;   //aptuveni vidus pelēktoņu intensitātei [0, 255]
+    // Sāk no 128, lai pīķi meklētu tikai gaišajā histogrammas daļā
+    // (svarīgi, kad fons ir tumšs)
+    let secondPeak = 128; //gaišajā daļā (paņemsim aptuveni vidu)
 
-  // tumšā fona pīķis
-  for (let i = 0; i < 128; i++) {
-    if (histogram[i] > histogram[firstPeak]) {
-      firstPeak = i;
+    // Pirmais pīķis tiek meklēts tumšajā intensitāšu daļā [0,127]
+    // ideja: atrast vietu, kur tumšo pikseļu ir visvairāk
+    for (let i = 0; i < 128; i++) {
+      if (histogram[i] > histogram[firstPeak]) {
+        firstPeak = i;
+      }
     }
-  }
 
-  // gaišā objekta pīķis
-  for (let i = 128; i < 256; i++) {
-    if (histogram[i] > histogram[secondPeak]) {
-      secondPeak = i;
+    // Otrais pīķis tiek meklēts gaišajā intensitāšu daļā [128,255]
+    // ideja: atrast vietu, kur gaišo pikseļu ir visvairāk
+    for (let i = 128; i < 256; i++) {
+      if (histogram[i] > histogram[secondPeak]) {
+        secondPeak = i;
+      }
     }
-  }
 
-  const start = Math.min(firstPeak, secondPeak);
-  const end = Math.max(firstPeak, secondPeak);
+    // Nosaka intervālu starp abiem atrastajiem pīķiem
+    const start = Math.min(firstPeak, secondPeak);
+    const end = Math.max(firstPeak, secondPeak);
 
-  // atrodam vietu, kur sākas un beidzas ieplaka
-  let valleyStart = start;
-  let valleyEnd = end;
+    // Vietas, kur sākas un beidzas ieplaka
+    let valleyStart = start;
+    let valleyEnd = end;
 
-  for (let i = start; i <= end; i++) {
-    if (histogram[i] < histogram[start] * 0.05) {
-      valleyStart = i;
-      break;
+    // No kreisās puses meklē vietu, kur histogrammas vērtība kļūst ļoti maza
+    // jeb sākas ieplaka starp pīķiem
+    for (let i = start; i <= end; i++) {
+      if (histogram[i] < histogram[start] * 0.05) {
+        valleyStart = i;
+        break;
+      }
     }
-  }
 
-  for (let i = end; i >= start; i--) {
-    if (histogram[i] < histogram[end] * 0.05) {
-      valleyEnd = i;
-      break;
+    // No labās puses meklē vietu, kur ieplaka beidzas
+    for (let i = end; i >= start; i--) {
+      if (histogram[i] < histogram[end] * 0.05) {
+        valleyEnd = i;
+        break;
+      }
     }
-  }
 
-  return Math.round((valleyStart + valleyEnd) / 2);
-}
+    // Slieksnis = ieplakas centra vērtība
+    return Math.round((valleyStart + valleyEnd) / 2);
+  }
 </script>
