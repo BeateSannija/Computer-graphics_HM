@@ -20,31 +20,59 @@
     >
       <div style="text-align: center">
         <p><b>Oriģinālais attēls</b></p>
-        <canvas id="originalCanvas" style="border: 2px solid black"></canvas>
+        <canvas
+          id="originalCanvas"
+          width="370"
+          height="490"
+          style="border: 2px solid black"
+        ></canvas>
       </div>
 
       <div style="text-align: center">
         <p><b>Oriģinālā histogramma</b></p>
         <canvas
           id="originalHistogramCanvas"
+          width="370"
+          height="490"
           style="border: 2px solid black"
         ></canvas>
       </div>
 
       <div style="text-align: center">
         <p><b>Pēc līmeņu izplešanas</b></p>
-        <canvas id="resultCanvas" style="border: 2px solid black"></canvas>
+        <canvas
+          id="resultCanvas"
+          width="370"
+          height="490"
+          style="border: 2px solid black"
+        ></canvas>
       </div>
 
       <div style="text-align: center">
         <p><b>Rezultāta histogramma</b></p>
         <canvas
           id="resultHistogramCanvas"
+          width="370"
+          height="490"
           style="border: 2px solid black"
         ></canvas>
       </div>
     </div>
-    <p>Darbā realizēta kontrasta palielināšana ar līmeņu izplešanu</p>
+    <p
+      style="
+        text-align: center;
+        max-width: 600px;
+        margin: auto;
+        margin-top: 10px;
+      "
+    >
+      Darbā realizēta kontrasta palielināšana ar līmeņu izplešanu. Rezultātā var
+      novērot, ka kontrasts pieaug (skatoties uz attēlu); histogramma kļūst
+      platāka; histogrammas forma būtiski nemainās. Pikseļi, kam bija tumšākais
+      tonis oriģinālajā attēlā, kļuva par pilnīgi melnu; gaišākie pikselis/i
+      kļuva pilnīgi balti. Izmantoju formulu s= ((r-rmin) / (rmax - rmin)) *
+      255.
+    </p>
   </body>
 </html>
 
@@ -52,124 +80,151 @@
   const img = new Image();
   img.src = "/plava.jpg";
 
-  const scale = 0.5;
-
+  //Tiek izsaukts automātiski pēc tam, kad attēls ir ielādēts
+  // tikai pēc ielādes var iegūt attēla izmērus un pikseļu datus
   img.onload = function () {
+    // Iegūst canvas no DOM
     const originalCanvas = document.getElementById("originalCanvas");
+    const resultCanvas = document.getElementById("resultCanvas");
     const originalHistogramCanvas = document.getElementById(
       "originalHistogramCanvas",
     );
-
-    originalCanvas.width = img.width * scale;
-    originalCanvas.height = img.height * scale;
-    originalHistogramCanvas.width = originalCanvas.width;
-    originalHistogramCanvas.height = originalCanvas.height;
-
-    const ctx = originalCanvas.getContext("2d");
-
-    ctx.drawImage(img, 0, 0, originalCanvas.width, originalCanvas.height);
-    const imageData = ctx.getImageData(
-      0,
-      0,
-      originalCanvas.width,
-      originalCanvas.height,
-    );
-
-    console.log(imageData);
-    const pixels = imageData.data;
-
-    let rmin = 255;
-    let rmax = 0;
-
-    const histogram = new Array(256).fill(0);
-
-    for (let i = 0; i < pixels.length; i += 4) {
-      const gray = Math.round((pixels[i] + pixels[i + 1] + pixels[i + 2]) / 3);
-      histogram[gray]++;
-    }
-
-    drawHistogram(histogram, "originalHistogramCanvas");
-
-    for (let i = 0; i < pixels.length; i += 4) {
-      const gray = (pixels[i] + pixels[i + 1] + pixels[i + 2]) / 3;
-
-      if (gray < rmin) {
-        rmin = gray;
-      }
-
-      if (gray > rmax) {
-        rmax = gray;
-      }
-    }
-
-    console.log("rmin =", rmin);
-    console.log("rmax =", rmax);
-
-    const resultCanvas = document.getElementById("resultCanvas");
-    resultCanvas.width = originalCanvas.width;
-    resultCanvas.height = originalCanvas.height;
-
-    const resultCtx = resultCanvas.getContext("2d");
-    const resultImageData = resultCtx.createImageData(
-      originalCanvas.width,
-      originalCanvas.height,
-    );
-
-    const resultPixels = resultImageData.data;
-
-    for (let i = 0; i < pixels.length; i += 4) {
-  const red = pixels[i];
-  const green = pixels[i + 1];
-  const blue = pixels[i + 2];
-
-  let newRed = ((red - rmin) * 255) / (rmax - rmin);
-  let newGreen = ((green - rmin) * 255) / (rmax - rmin);
-  let newBlue = ((blue - rmin) * 255) / (rmax - rmin);
-
-  newRed = Math.max(0, Math.min(255, newRed));
-  newGreen = Math.max(0, Math.min(255, newGreen));
-  newBlue = Math.max(0, Math.min(255, newBlue));
-
-  resultPixels[i] = newRed;
-  resultPixels[i + 1] = newGreen;
-  resultPixels[i + 2] = newBlue;
-  resultPixels[i + 3] = pixels[i + 3];
-}
-
-    resultCtx.putImageData(resultImageData, 0, 0);
-
-    let newMin = 255;
-    let newMax = 0;
-
-    for (let i = 0; i < resultPixels.length; i += 4) {
-      const value = resultPixels[i];
-
-      if (value < newMin) newMin = value;
-      if (value > newMax) newMax = value;
-    }
-
-    console.log("newMin =", newMin);
-    console.log("newMax =", newMax);
-
-    const resultHistogram = new Array(256).fill(0);
-
-    for (let i = 0; i < resultPixels.length; i += 4) {
-      const gray = resultPixels[i];
-      resultHistogram[Math.round(gray)]++;
-    }
-
     const resultHistogramCanvas = document.getElementById(
       "resultHistogramCanvas",
     );
-    resultHistogramCanvas.width = originalCanvas.width;
-    resultHistogramCanvas.height = originalCanvas.height;
 
-    drawHistogram(resultHistogram, "resultHistogramCanvas");
+    const originalCtx = originalCanvas.getContext("2d");
+    originalCtx.drawImage(
+      img,
+      0,
+      0,
+      originalCanvas.width,
+      originalCanvas.height,
+    );
+
+    const imageData = originalCtx.getImageData(
+      0,
+      0,
+      originalCanvas.width,
+      originalCanvas.height,
+    );
+
+    const originalHistogram = createHistogram(imageData.data);
+    drawHistogram(originalHistogram, originalHistogramCanvas);
+
+    const resultImageData = applyContrastStretching(imageData);
+
+    const resultCtx = resultCanvas.getContext("2d");
+    resultCtx.putImageData(resultImageData, 0, 0);
+
+    const resultHistogram = createHistogram(resultImageData.data);
+    drawHistogram(resultHistogram, resultHistogramCanvas);
   };
 
-  //   TODO paskaidrot šo
-  function drawHistogram(histogram, canvasId) {
-    const canvas = document.getElementById(canvasId);
+  /**
+   * Galvenā funkcija: realizē kontrasta palielināšanu ar līmeņu izplešanu.
+   * Vispirms atrod rmin un rmax, pēc tam katram RGB kanālam pielieto
+   * līmeņu izplešanas formulu.
+   * @param imageData - oriģinālā attēla ImageData objekts
+   * @returns jauns ImageData objekts pēc kontrasta palielināšanas
+   */
+  function applyContrastStretching(imageData) {
+    const pixels = imageData.data;
+    const resultImageData = new ImageData(imageData.width, imageData.height);
+    const resultPixels = resultImageData.data;
+
+    const { rmin, rmax } = findMinMaxIntensity(pixels);
+
+    // ImageData.data masīvā katrs pikselis aizņem 4 vērtības:
+    // red, green, blue un alpha, tāpēc ciklā ejam ar soli 4.
+    for (let i = 0; i < pixels.length; i += 4) {
+      resultPixels[i] = stretchLevel(pixels[i], rmin, rmax);
+      resultPixels[i + 1] = stretchLevel(pixels[i + 1], rmin, rmax);
+      resultPixels[i + 2] = stretchLevel(pixels[i + 2], rmin, rmax);
+
+      // Saglabājam alpha kanālu no oriģinālā attēla,
+      // lai nemainītu pikseļa caurspīdīgumu.
+      resultPixels[i + 3] = pixels[i + 3];
+    }
+
+    return resultImageData;
+  }
+
+  // PALĪGFUNKCIJAS
+
+  /**
+   * Aprēķina pikseļa pelēktoņa/intensitātes vērtību.
+   * To izmanto histogrammas veidošanai un rmin/rmax atrašanai.
+   * @param red - sarkanā kanāla vērtība
+   * @param green - zaļā kanāla vērtība
+   * @param blue - zilā kanāla vērtība
+   * @returns pikseļa vidējā intensitāte diapazonā [0,255]
+   */
+  function getGrayValue(red, green, blue) {
+    return Math.round((red + green + blue) / 3);
+  }
+
+  /**
+   * Atrod attēla minimālo un maksimālo intensitātes līmeni.
+   * Šīs vērtības tiek izmantotas līmeņu izplešanas formulā.
+   * @param pixels - attēla pikseļu masīvs RGBA formātā
+   * @returns objekts ar rmin un rmax vērtībām
+   */
+  function findMinMaxIntensity(pixels) {
+    let rmin = 255;
+    let rmax = 0;
+
+    for (let i = 0; i < pixels.length; i += 4) {
+      const gray = getGrayValue(pixels[i], pixels[i + 1], pixels[i + 2]);
+
+      if (gray < rmin) rmin = gray;
+      if (gray > rmax) rmax = gray;
+    }
+
+    return { rmin, rmax };
+  }
+
+  /**
+   * Pielieto līmeņu izplešanas formulu vienai krāsas kanāla vērtībai.
+   * Formula pārveido sākotnējo vērtību tā, lai rmin kļūtu par 0,
+   * bet rmax kļūtu par 255.
+   * @param value - sākotnējā krāsas kanāla vērtība
+   * @param rmin - minimālais intensitātes līmenis attēlā
+   * @param rmax - maksimālais intensitātes līmenis attēlā
+   * @returns jaunā krāsas kanāla vērtība diapazonā [0,255]
+   */
+  function stretchLevel(value, rmin, rmax) {
+    const newValue = ((value - rmin) * 255) / (rmax - rmin);
+    // Nodrošinām, ka iegūtā vērtība paliek intervālā [0,255]
+    return Math.max(0, Math.min(255, newValue));
+  }
+
+  /**
+   * Izveido attēla histogrammu pēc pikseļu intensitātes.
+   * Histogrammas masīvā katrs indekss atbilst intensitātes līmenim,
+   * bet vērtība norāda, cik pikseļu ir šajā līmenī.
+   * @param pixels - attēla pikseļu masīvs RGBA formātā
+   * @returns histogrammas masīvs ar 256 vērtībām
+   */
+  function createHistogram(pixels) {
+    const histogram = new Array(256).fill(0);
+
+    for (let i = 0; i < pixels.length; i += 4) {
+      const gray = getGrayValue(pixels[i], pixels[i + 1], pixels[i + 2]);
+      histogram[gray]++;
+    }
+
+    return histogram;
+  }
+
+  /**
+   * Uzzīmē histogrammu uz canvas.
+   * Katram intensitātes līmenim [0,255] tiek uzzīmēts viens stabiņš.
+   * Stabiņa augstums ir proporcionāls pikseļu skaitam šajā līmenī.
+   * @param histogram - histogrammas masīvs
+   * @param canvas - canvas elements, uz kura zīmēt histogrammu
+   */
+  function drawHistogram(histogram, canvas) {
     const ctx = canvas.getContext("2d");
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -178,6 +233,8 @@
     const barWidth = canvas.width / 256;
 
     for (let i = 0; i < 256; i++) {
+      // Histogrammas stabiņa augstumu mērogojam pret lielāko histogrammas vērtību,
+      // lai histogramma ietilptu canvas augstumā.
       const barHeight = (histogram[i] / maxValue) * canvas.height;
 
       ctx.fillRect(
